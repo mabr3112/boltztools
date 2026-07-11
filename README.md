@@ -13,11 +13,16 @@ Adding CCD from rcsb. The CIF will be automatically downloaded from rcsb. Note n
 ./add_mol_to_ccd.py -n CLA
 ```
 
-Adding custom CIF or PDB.
+Adding a custom CIF, PDB, MOL, or SDF file.
 
 ```
 ./add_mol_to_ccd.py -n MLE -i MLE.cif
 ```
+
+MOL and SDF inputs preserve bond orders and are recommended when exporting a
+custom ligand from PyMOL. Because MOL and SDF do not preserve PyMOL atom names,
+atoms without MOL aliases are named from their element and one-based file
+occurrence (for example, `C1`, `C2`, `O1`).
 
 Adding custom smiles. This does not correctly name polymer residue atoms. This means it will NOT work with polymer residues. The offset for leaving atoms may optionaly be provided using --leaving_atoms.
 The lewis structure with atom names will be saved to "{name}.png".

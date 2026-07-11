@@ -143,6 +143,16 @@ def setPropsFromPDBResidueInfo(mol):
         atom.SetProp("name", residueInfo.GetName().strip().upper())
         atom.SetIntProp("leaving_atom", 0)
 
+def setPropsFromMolFile(mol):
+    """Set Boltz atom properties for MOL and SDF inputs."""
+    element_counts = {}
+    for atom in mol.GetAtoms():
+        element = atom.GetSymbol().upper()
+        element_counts[element] = element_counts.get(element, 0) + 1
+        name = atom.GetProp("molFileAlias") if atom.HasProp("molFileAlias") else f"{element}{element_counts[element]}"
+        atom.SetProp("name", name.strip().upper())
+        atom.SetIntProp("leaving_atom", 0)
+
 def addMolToCCD(resname: str, mol: rdkit.Chem.Mol, boltz_path = Path().home() / '.boltz'):
     if mol is None:
         raise Exception("Mol can not be null")
@@ -188,6 +198,10 @@ def addCIFToCCD(resname: str, filename = None, smiles = None, leaving_atoms = []
         if suffix == ".pdb":
             mol = rdkit.Chem.MolFromPDBFile(filename)
             setPropsFromPDBResidueInfo(mol)
+        elif suffix in {".mol", ".sdf"}:
+            mol = rdkit.Chem.MolFromMolFile(filename, removeHs=False)
+            if mol is not None:
+                setPropsFromMolFile(mol)
         elif suffix == ".cif":
             mol = MolFromCIFFile(filename, resname)
         else:
@@ -230,7 +244,7 @@ def validate_name(name):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-n", "--name", required=True, type=validate_name, help="Name of molecule can not exceed 5 characters")
-    parser.add_argument("-i", "--input", help="CIF file containing molecule to add to boltz's CCD")
+    parser.add_argument("-i", "--input", help="CIF, PDB, MOL, or SDF file containing molecule to add to boltz's CCD")
     parser.add_argument("-s", "--smiles", help="Smiles to add to boltz's CCD. This does not correctly name polymer residue atoms. This means it will NOT work with polymer residues.")
     parser.add_argument("-l", "--leaving_atoms", nargs="+", type=int, help="Offset of leaving atoms in smiles starting from 1. This only works for smiles.")
     parser.add_argument("-b", "--boltz_path", default=Path().home() / '.boltz', help="Path to boltz directory")
