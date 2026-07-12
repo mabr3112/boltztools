@@ -153,6 +153,22 @@ def setPropsFromMolFile(mol):
         atom.SetProp("name", name.strip().upper())
         atom.SetIntProp("leaving_atom", 0)
 
+def clearInvalidFormalCharges(mol):
+    """Clear formal charges that make an atom's explicit valence invalid."""
+    mol.UpdatePropertyCache(strict=False)
+    with rdkit.rdBase.BlockLogs():
+        problems = rdkit.Chem.DetectChemistryProblems(mol)
+    for problem in problems:
+        if problem.GetType() != "AtomValenceException":
+            continue
+        atom = mol.GetAtomWithIdx(problem.GetAtomIdx())
+        if atom.GetFormalCharge():
+            warnings.warn(
+                f"Ignoring invalid formal charge {atom.GetFormalCharge()} "
+                f"on atom {problem.GetAtomIdx() + 1}."
+            )
+            atom.SetFormalCharge(0)
+
 def addMolToCCD(resname: str, mol: rdkit.Chem.Mol, boltz_path = Path().home() / '.boltz'):
     if mol is None:
         raise Exception("Mol can not be null")
@@ -199,8 +215,9 @@ def addCIFToCCD(resname: str, filename = None, smiles = None, leaving_atoms = []
             mol = rdkit.Chem.MolFromPDBFile(filename)
             setPropsFromPDBResidueInfo(mol)
         elif suffix in {".mol", ".sdf"}:
-            mol = rdkit.Chem.MolFromMolFile(filename, removeHs=False)
+            mol = rdkit.Chem.MolFromMolFile(filename, removeHs=False, sanitize=False)
             if mol is not None:
+                clearInvalidFormalCharges(mol)
                 setPropsFromMolFile(mol)
         elif suffix == ".cif":
             mol = MolFromCIFFile(filename, resname)
