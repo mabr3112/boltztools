@@ -178,6 +178,11 @@ def addMolToCCD(resname: str, mol: rdkit.Chem.Mol, boltz_path = Path().home() / 
     rdkit.Chem.SanitizeMol(mol)
     rdkit.Chem.rdmolops.AssignStereochemistryFrom3D(mol)
 
+    # Store each reference conformer relative to its own atom centroid.
+    for conformer in mol.GetConformers():
+        positions = conformer.GetPositions()
+        conformer.SetPositions(positions - positions.mean(axis=0))
+
     parsedResidue = parse_ccd_residue(resname, mol, 0)
 
     addPickledProp(mol, 'symmetries', mol.GetSubstructMatches(mol, uniquify=False))
