@@ -11,6 +11,7 @@ import rdkit.Chem.Draw
 from CifFile import ReadCif
 import numpy as np
 from boltz.data.parse.mmcif_with_constraints import parse_ccd_residue
+from rdkit.Geometry import Point3D
 
 def orderToBondType(order: str):
     # Accept common CIF value_order variants like 'SING', 'SINGLE', 'DOUB', 'DOUBLE', 'TRIP', 'TRIPLE'
@@ -174,6 +175,16 @@ def addMolToCCD(resname: str, mol: rdkit.Chem.Mol, boltz_path = Path().home() / 
         raise Exception("Mol can not be null")
 
     mol = rdkit.Chem.RemoveHs(mol)
+
+    conf = mol.GetConformer()
+    coords = conf.GetPositions()
+    center = coords.mean(axis=0)
+
+    for i, xyz in enumerate(coords - center):
+        conf.SetAtomPosition(
+            i,
+            Point3D(float(xyz[0]), float(xyz[1]), float(xyz[2])),
+        )
     mol.UpdatePropertyCache(strict=False)
     rdkit.Chem.SanitizeMol(mol)
     rdkit.Chem.rdmolops.AssignStereochemistryFrom3D(mol)
